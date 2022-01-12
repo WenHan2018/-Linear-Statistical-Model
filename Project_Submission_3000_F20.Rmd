@@ -1,0 +1,215 @@
+---
+title: "Protein and fat have an impact on food calories"
+author: "Wen Han 7879607"
+date: "November 25, 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question
+As we all know that protein and fat play an important role in food calories. This project is to statistically reveal how these two ingredients impact the food calories. 
+
+With in this project, the explanatory variable Protein is the protein content(in grams) contains in one kind of food, the explanatory variable Fat is the fat content(in grams) contains in this kind of food, and the response variable Calories is the calorie content (in calories) in this kind of food.
+
+Protein and fat have positive linear relationship with total food calories. In addition, the amount of these two ingredients can help to predict how much calories for specific kind of food contains-the more protein/fat it has, the more calories it provides.
+
+
+## Data Set
+```{r}
+FoodCalories<-read.csv("nutrients_csvfile.csv")
+Calories<-c(660,127,345,1373,515,165,690,235,128,275,285,300,275,170,430)
+Protein<-c(32,9,16,89,27,10,24,8,18,9,13,6,9,4,2)
+Fat<-c(40,5,20,42,28,8,24,11,4,10,14,18,10,15,44)
+Calorie<-data.frame(Calories, Protein, Fat)
+knitr::kable(Calorie, "pipe", col.name=c("Calorie", "Protein", "Fat"), align=c("l", "c","c"))
+
+```
+    
+Pandit, N.(July 25, 2020). Nutritional Facts for most common foods, know the nutrients in your food: 
+Fat, Carbs, Proteins etc. https://www.kaggle.com/niharika41298/nutrition-details-for-most-common-foods
+    
+Following is a scatterplot of Protein respect Calories and calculated ${r^2}$.
+```{r}
+
+plot(y=Calories, x=Protein, xlab="Protein", ylab="Calories")
+model<-lm(Calories~Protein)
+summary(model)
+```
+ 
+-Here, the ${r^2}$ is 0.8414.
+ 
+Following is a scatterplot of Fat respect Calories and calculated ${r^2}$.
+```{r}
+plot(y=Calories, x=Fat, xlab="Fat", ylab="Calories")
+model<-lm(Calories~Fat)
+summary(model)
+```
+
+ -Here, the ${r^2}$ is 0.5978.
+ 
+## Preliminary Model
+Following is the model for Protein~Calories, also the regression line.
+```{r}
+model<-lm(Calories~Protein)
+summary(model)
+```
+$\hat{y}$=143.481+13.843$X_1$
+
+Following is the model for Fat~Calories, also the regression line.
+```{r}
+model<-lm(Calories~Fat)
+summary(model)
+```
+$\hat{y}$=34.556+18.617$X_2$
+
+Following is the model for Protein and Fat~Calories, also the regression line.
+```{r}
+model<-lm(Calories~Protein+Fat)
+summary(model)
+```
+$\hat{y}$=19.593+10.646$X_1$+9.354$X_2$. 
+
+The adjusted ${r^2}$ is increased from 0.5669 to 0.9387
+
+Following is the full second-order model, also the regression line.
+
+## full second-order model
+```{r}
+protein2<-Protein^2
+fat2<-Fat^2
+Model.full<-lm(Calories~Protein+Fat+protein2+fat2+Protein*Fat)
+Model.full
+```
+$\hat{y}$=-80.00330 + 8.77592$X_1$ + 23.98250$X_1$ + 0.0497$X_1^2$ -0.29423$X_2^2$ -0.05502${X_1X_2}$
+ 
+Here is the complete ANOVA test, it needs to be identified if at least one of the model terms is significant.
+
+## ANOVA test
+```{r}
+anova(Model.full)
+summary(Model.full)
+```
+(1)Level of significance: ${\alpha}$ =0.05
+
+(2)Hypothesis: $H_0$:${\beta_1}$=${\beta_2}$=${\beta_3}$=${\beta_4}$=${\beta_5}$=0 vs. $H_A$: At least one ${\beta}_i$ $\not=$ 0 (i=1,2,3,4,5)
+
+(3)Decision Rule: Reject $H_0$ if p-value ${\le}$ ${\alpha}$
+
+(4)Test statistic: F=45.89
+
+(5)P-value: ${\approx}$ 0
+
+(6)Conclusion: As p-value ${\approx}$ 0 < 0.5= ${\alpha}$, reject $H_0$. Conclude that there is sufficient evidence that at least one of the model terms does a sufficient job at explaining the protein and fat have an impact with food calories.
+
+## Model Refinement
+
+Here the summary() function is used on the full model to get the output for the t-tests on the individual co-efficients.
+```{r}
+output<-lm(formula = Calories~Protein+Fat+protein2+fat2+Protein*Fat)
+summary(output)
+```
+${\beta_1}$=8.77592
+${\beta_2}$=23.98250
+${\beta_3}$=0.04907
+${\beta_4}$=-0.29423
+${\beta_5}$=-0.05502
+
+The Fat term is 0.0223 which is less than 0.05 seems significant. But there are other terms are not significant. VIF function is used to check which other term (or terms) is(or are) significant.
+
+## VIF
+```{r}
+library(car)
+vif(Model.full)
+```
+
+All the VIF numbers is bigger than 5. So, it has to reduce the largest VIF, which is Protein*Fat, and redo the summary() without that, propose a new model based on those results.
+
+```{r}
+reduced.model<-lm(formula = Calories~Protein+Fat+protein2+fat2)
+summary(reduced.model)
+```
+
+From this model, there is no other significant term since p-value all bigger than ${\alpha}$. So, reducing  Protein^2 term, redo the summary() without that, and propose another new model based on those results.
+
+```{r}
+reduced.model2<-lm(formula = Calories~Protein+Fat+fat2)
+summary(reduced.model2)
+```
+
+From this model, there is still other non significant terms. So, reducing Fat^2 term, redo the summary() without that, and propose another new model based on those results.
+
+```{r}
+reduced.model3<-lm(formula = Calories~Protein+Fat)
+summary(reduced.model3)
+```
+
+Now, a nested F-test was perform to test that the terms that eliminated were in fact zero comparing the full model to my new reduced model. And also following with the full test.
+
+## Anova test
+```{r}
+anova(reduced.model3, Model.full)
+```
+(1)Level of significance: ${\alpha}$ =0.05
+
+(2)Hypothesis: $H_0$: ${\beta_1}$=${\beta2}$=0 vs. $H_A$: At least one ${\beta}_i$ $\not=$ 0 (i=1,2)
+
+(3)Decision Rule: Reject $H_0$ if p-value ${\leq}$ ${\alpha}$
+
+(4)Test statistic: F=1.1735
+
+(5)P-value: p-value ${\approx}$ 0.3728
+
+(6)Conclusion: As p-value ${\approx}$ 0.3728> 0.5= ${\alpha}$, fail to reject $H_0$. Conclude that there is insufficient evidence that at least one of co-efficients for $(protein)^2$ and $(fat)^2$ is non-zero.
+
+## Final Model and Assessment
+The ANOVA test on the reduced model was perform to show it adequately explains the relationship with Y.
+
+## Anova test
+```{r}
+anova(reduced.model3)
+summary(reduced.model3)
+```
+(1)Level of significance: ${\alpha}$ =0.05
+
+(2)Hypothesis: $H_0$: ${\beta_1}$=${\beta_2}$=0, vs. $H_A$: At least one ${\beta}_i$ ${\neq}$ 0 (i=1,2)
+
+(3)Decision Rule: Reject $H_0$ if p-value ${\leq}$ ${\alpha}$
+
+(4)Test statistic: F=108.3
+
+(5)P-value: p-value ${\approx}$ 2.097e-08
+
+(6)Conclusion: As p-value ${\approx}$ 2.097e-08 < 0.5= ${\alpha}$, reject $H_0$. Conclude that there is sufficient evidence that at least one of our model terms significantly explains the variation in Calories.
+
+## Residual Plot
+```{r}
+model.resid<-residuals(reduced.model3)
+model.fitted<-fitted.values(reduced.model3)
+plot(y=model.resid, x=model.fitted, xlab = "Fitted values", ylab = "Residual",
+     main="Residual Plot")
+
+```
+The points in this plot look randomly distributed, but there is two outliers in the upper middle and upper right.There is a potential that there may be have extreme deviations from the assumptions if there are more points.
+
+Now check the reduced.model3 assumption by using normal quantile plot.
+
+```{r}
+model.stdres<-rstandard(reduced.model3)
+qqnorm(model.stdres, ylab = "Calories content", col="dark green")
+qqline(model.stdres, col="dark red")
+```
+
+Over half of the points are close or cross to the line. There are one outliers is away from the rest points. Overall, it requires us to use the model with caution.
+
+## Conclusion
+Based on the ANOVA test and the reduced model we made, it is concluded that the explanatory variables Protein and Fat are able to predict the response variable Calories.
+
+```{r}
+summary(reduced.model3)
+```
+
+The final regression equation as the best estimate of the relationship between Y and $X_1$ and $X_2$ is:
+$\hat{y}$=19.593+10.646$X_1$+9.354$X_2$
